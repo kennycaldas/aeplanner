@@ -1,0 +1,6 @@
+devel_space: /home/kenny/git/aeplanner/rpl_exploration/devel
+install: false
+install_space: /home/kenny/git/aeplanner/rpl_exploration/install
+profile: default
+source_space: /home/kenny/git/aeplanner/rpl_exploration/src
+workspace: /home/kenny/git/aeplanner/rpl_exploration

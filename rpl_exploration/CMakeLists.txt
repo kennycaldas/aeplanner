@@ -1,31 +1,45 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rpl_exploration)
 
-add_definitions(-std=c++11)
+# add_definitions(-std=c++11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_definitions(-O3)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  tf
-  std_msgs
-  sensor_msgs
-  geometry_msgs
-  octomap_msgs
-  nodelet
-  
-  genmsg 
-  actionlib_msgs 
   actionlib
+  actionlib_msgs 
   aeplanner
   aeplanner_evaluation
+  cmake_modules
+  genmsg 
+  geometry_msgs
+  mrs_lib
+  mrs_msgs
+  nav_msgs
+  nodelet
+  octomap_msgs
+  octomap_ros
+  pcl_conversions
+  pcl_ros
+  roscpp
+  rospy
   rrtplanner
+  sensor_msgs
+  std_msgs
+  tf
 )
 
 find_package(octomap REQUIRED)
-find_package(PCL REQUIRED)
+# find_package(PCL REQUIRED)
+find_package(PCL REQUIRED COMPONENTS
+  common
+  )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
