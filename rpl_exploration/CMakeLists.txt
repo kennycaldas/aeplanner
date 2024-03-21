@@ -76,7 +76,7 @@ find_package(PCL REQUIRED COMPONENTS
 
 # find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
 add_action_files(DIRECTORY action FILES FlyTo.action)
-generate_messages(DEPENDENCIES actionlib_msgs geometry_msgs)
+generate_messages(DEPENDENCIES actionlib_msgs mrs_msgs/Reference)
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES

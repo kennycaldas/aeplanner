@@ -1,0 +1,3 @@
+rplidar:
+  republish: false
+  voxel_resolution: 0.05
