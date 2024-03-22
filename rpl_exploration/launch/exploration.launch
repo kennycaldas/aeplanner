@@ -7,7 +7,7 @@
     <include file="$(find aeplanner)/launch/aeplanner_nodelet.launch" />
     <include file="$(find pigain)/launch/pig.launch" />
     <include file="$(find rpl_exploration)/launch/fly_to.launch" />
-    <include file="$(find rpl_exploration)/launch/octomap_server.launch" />
+    <!-- <include file="$(find rpl_exploration)/launch/octomap_server.launch" /> -->
     <include file="$(find rrtplanner)/launch/rrtplanner.launch" />
 
     <node name="rpl_exploration" pkg="rpl_exploration" type="rpl_exploration" output="screen" />

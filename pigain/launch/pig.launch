@@ -2,7 +2,7 @@
 <launch>
   <arg name="param_file" default="$(find pigain)/config/config.yaml" />
   <node name="pig" pkg="pigain" type="pig.py">
-    <remap from="pose" to="/uav1/control_manager/tracker_cmd" />
+    <remap from="pose" to="/uav1/control_manager/control_reference" />
     <rosparam command="load" file="$(arg param_file)" />
   </node>
 </launch>

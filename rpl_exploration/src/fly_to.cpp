@@ -55,8 +55,11 @@ public:
       ROS_INFO_STREAM("Publishing goal to (" << p.x << ", " << p.y << ", " << p.z << ") ");
       pub_.publish(goal->pose);
 
-      listener.waitForTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), ros::Duration(10.0));
-      listener.lookupTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), transform);
+      // listener.waitForTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), ros::Duration(10.0));
+      // listener.lookupTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), transform);
+
+      listener.waitForTransform("/uav1/fcu", "/uav1/world_origin", ros::Time(0), ros::Duration(10.0));
+      listener.lookupTransform("/uav1/fcu", "/uav1/world_origin", ros::Time(0), transform);
 
       geometry_msgs::Point q;
       q.x = (float)transform.getOrigin().x();

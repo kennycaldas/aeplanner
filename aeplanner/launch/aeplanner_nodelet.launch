@@ -4,7 +4,7 @@
   <node pkg="nodelet" type="nodelet" name="aeplanner_nodelet_manager" args="manager" output="screen" />
   <node pkg="nodelet" type="nodelet" name="AEPlannerNodelet"
     args="$(arg nodelet_mode) aeplanner/AEPlannerNodelet aeplanner_nodelet_manager" output="screen">
-    <remap from="octomap" to="octomap_full" />
+    <remap from="octomap" to="/uav1/octomap_server/octomap_global_full" />
     <remap from="agent_pose" to="/uav1/control_manager/control_reference" />
   </node>
 </launch>

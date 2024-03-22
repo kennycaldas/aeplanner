@@ -37,22 +37,22 @@ windows:
           custom_config:=./config/custom_config.yaml
           world_config:=./config/world_config.yaml
           network_config:=./config/network_config.yaml
-  # - octomap:
-  #     layout: tiled
-  #     panes:
-  #       - waitForHw; roslaunch octomap_exploration octomap_plan.launch
-  #         config_octomap_server:=./config/octomap_server.yaml
-  #         config_octomap_planner:=./config/octomap_planner.yaml
-  #         config_pcl_filter_rs_front:=./config/rs_front_filter.yaml
+  - octomap:
+      layout: tiled
+      panes:
+        - waitForHw; roslaunch rpl_exploration octomap_mrs.launch
+          config_octomap_server:=./config/octomap_server.yaml
+          config_octomap_planner:=./config/octomap_planner.yaml
+          config_pcl_filter_rs_front:=./config/rs_front_filter.yaml
   - takeoff:
       layout: tiled
       panes:
         - waitForHw; roslaunch mrs_uav_autostart automatic_start.launch
         - "waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard"
-  # - bumper:
-  #     layout: tiled
-  #     panes:
-  #       - waitForControl; roslaunch octomap_exploration bumper.launch
+  - bumper:
+      layout: tiled
+      panes:
+        - waitForControl; roslaunch octomap_exploration bumper.launch
   # - goto:
   #     layout: tiled
   #     panes:

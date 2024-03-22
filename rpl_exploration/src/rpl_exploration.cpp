@@ -81,6 +81,9 @@ int main(int argc, char** argv)
     goal.pose.reference.heading = init_yaw;
     last_pose.reference = goal.pose.reference;
 
+    ROS_INFO_STREAM("Goal: Fly to (" << goal.pose.reference.position.x << ", " << goal.pose.reference.position.y << ", "
+                                     << goal.pose.reference.position.z << ", " << goal.pose.reference.heading << ") ");
+
     ROS_INFO_STREAM("Sending initial goal...");
     ac.sendGoal(goal);
 
