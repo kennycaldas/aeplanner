@@ -15,7 +15,7 @@ windows:
   - gazebo:
       layout: tiled
       panes:
-        - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch world_name:=flat gui:=true
+        - waitForRos; roslaunch octomap_exploration simulation.launch world_name:=flat gui:=true
         # - waitForControl; gz camera -c gzclient_camera -f $UAV_NAME; history -s gz camera -c gzclient_camera -f $UAV_NAME
   - status:
       layout: tiled

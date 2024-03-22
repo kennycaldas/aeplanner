@@ -1,5 +1,5 @@
 # Define the goal
-mrs_msgs/Reference pose  
+mrs_msgs/ReferenceStamped pose  
 ---
 # Define the result
 ---
