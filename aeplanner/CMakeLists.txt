@@ -6,6 +6,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   geometry_msgs
+  nav_msgs
   visualization_msgs
   message_generation
   tf
@@ -46,7 +47,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS}
   LIBRARIES aeplanner ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES}
-  CATKIN_DEPENDS message_runtime roscpp geometry_msgs mrs_msgs visualization_msgs tf kdtree
+  CATKIN_DEPENDS message_runtime roscpp geometry_msgs mrs_msgs nav_msgs visualization_msgs tf kdtree
 )
 
 include_directories(

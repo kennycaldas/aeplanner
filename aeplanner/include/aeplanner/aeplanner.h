@@ -31,6 +31,7 @@
 
 #include <dynamic_reconfigure/server.h>
 #include <nav_msgs/Path.h>
+#include <nav_msgs/Odometry.h>
 
 #include <mrs_msgs/ReferenceStamped.h>
 
@@ -109,7 +110,7 @@ public:
   void execute(const aeplanner::aeplannerGoalConstPtr& goal);
 
   void octomapCallback(const octomap_msgs::Octomap& msg);
-  void agentPoseCallback(const mrs_msgs::ReferenceStamped& msg);
+  void agentPoseCallback(const nav_msgs::Odometry& msg);
 };
 
 }  // namespace aeplanner
