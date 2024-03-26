@@ -6,7 +6,7 @@ attach: false
 tmux_options: -f /etc/ctu-mrs/tmux.conf
 # you can modify these
 pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=f450
-startup_window: status
+startup_window: aeplanner
 windows:
   - roscore:
       layout: tiled
@@ -24,7 +24,7 @@ windows:
   - spawn:
       layout: tiled
       panes:
-        - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 $UAV_TYPE --enable-rangefinder --enable-rplidar --use-gpu-ray --enable-realsense-front --pos -3 -1 1.0 0"
+        - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 $UAV_TYPE --enable-rangefinder --enable-rplidar --use-gpu-ray --enable-realsense-front --pos -3 -1 1.0 1.57"
   - hw_api:
       layout: tiled
       panes:
@@ -53,10 +53,10 @@ windows:
       layout: tiled
       panes:
         - waitForControl; roslaunch octomap_exploration bumper.launch
-  # - goto:
-  #     layout: tiled
-  #     panes:
-  #       - 'history -s rosservice call /$UAV_NAME/octomap_planner/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
+  - aeplanner:
+      layout: tiled
+      panes:
+        - "waitForControl; roslaunch rpl_exploration exploration.launch"
   - rviz:
       layout: tiled
       panes:
