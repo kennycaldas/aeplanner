@@ -40,12 +40,6 @@ public:
     transform.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
     transform.setRotation(tf::Quaternion(0, 0, 0, 1));
 
-    // tf::Quaternion gq(goal->pose.pose.orientation.x, goal->pose.pose.orientation.y, goal->pose.pose.orientation.z,
-    //                   goal->pose.pose.orientation.w);
-    // tf::Matrix3x3 m(gq);
-    // double roll, pitch, goal_yaw;
-    // m.getRPY(roll, pitch, goal_yaw);
-
     double goal_yaw;
     goal_yaw = goal->pose.reference.heading;
 
@@ -55,26 +49,13 @@ public:
       ROS_INFO_STREAM("Publishing goal to (" << p.x << ", " << p.y << ", " << p.z << ") ");
       pub_.publish(goal->pose);
 
-      // listener.waitForTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), ros::Duration(10.0));
-      // listener.lookupTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), transform);
-
-      listener.waitForTransform("/uav1/fcu", "/uav1/world_origin", ros::Time(0), ros::Duration(10.0));
-      listener.lookupTransform("/uav1/fcu", "/uav1/world_origin", ros::Time(0), transform);
+      listener.waitForTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), ros::Duration(10.0));
+      listener.lookupTransform("/uav1/world_origin", "/uav1/fcu", ros::Time(0), transform);
 
       geometry_msgs::Point q;
       q.x = (float)transform.getOrigin().x();
       q.y = (float)transform.getOrigin().y();
       q.z = (float)transform.getOrigin().z();
-
-      // geometry_msgs::Quaternion tq;
-      // tq.x = (float)transform.getRotation().x();
-      // tq.y = (float)transform.getRotation().y();
-      // tq.z = (float)transform.getRotation().z();
-      // tq.w = (float)transform.getRotation().w();
-      // tf::Quaternion cq(tq.x, tq.y, tq.z, tq.w);
-      // tf::Matrix3x3 m(cq);
-      // double current_yaw;
-      // m.getRPY(roll, pitch, current_yaw);
 
       double current_yaw;
       current_yaw = tf::getYaw(transform.getRotation());

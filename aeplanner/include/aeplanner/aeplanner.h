@@ -32,6 +32,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <nav_msgs/Path.h>
 
+#include <mrs_msgs/ReferenceStamped.h>
+
 namespace aeplanner
 {
 class AEPlanner
@@ -69,8 +71,7 @@ private:
   ros::ServiceServer reevaluate_server_;
 
   // Service server callback
-  bool reevaluate(aeplanner::Reevaluate::Request& req,
-                  aeplanner::Reevaluate::Response& res);
+  bool reevaluate(aeplanner::Reevaluate::Request& req, aeplanner::Reevaluate::Response& res);
 
   // ---------------- Initialization ----------------
   RRTNode* initialize();
@@ -96,8 +97,8 @@ private:
 
   geometry_msgs::Pose vecToPose(Eigen::Vector4d state);
 
-  float CylTest_CapsFirst(const octomap::point3d& pt1, const octomap::point3d& pt2,
-                          float lsq, float rsq, const octomap::point3d& pt);
+  float CylTest_CapsFirst(const octomap::point3d& pt1, const octomap::point3d& pt2, float lsq, float rsq,
+                          const octomap::point3d& pt);
 
   // ---------------- Frontier ----------------
   geometry_msgs::PoseArray getFrontiers();
@@ -108,7 +109,7 @@ public:
   void execute(const aeplanner::aeplannerGoalConstPtr& goal);
 
   void octomapCallback(const octomap_msgs::Octomap& msg);
-  void agentPoseCallback(const geometry_msgs::PoseStamped& msg);
+  void agentPoseCallback(const mrs_msgs::ReferenceStamped& msg);
 };
 
 }  // namespace aeplanner

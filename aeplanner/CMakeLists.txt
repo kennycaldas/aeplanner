@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg 
   actionlib_msgs 
   actionlib
-
+  mrs_msgs
   kdtree
   pigain
   dynamic_reconfigure
@@ -46,7 +46,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS}
   LIBRARIES aeplanner ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES}
-  CATKIN_DEPENDS message_runtime roscpp geometry_msgs visualization_msgs tf kdtree
+  CATKIN_DEPENDS message_runtime roscpp geometry_msgs mrs_msgs visualization_msgs tf kdtree
 )
 
 include_directories(

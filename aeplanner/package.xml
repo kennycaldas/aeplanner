@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>aeplanner</name>
   <version>1.0.0</version>
   <description>The Autonomous Exploration Planner package</description>
@@ -11,28 +11,19 @@
   <author>Magnus Selin</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-  
-  <build_depend>roscpp</build_depend>
-  <build_depend>nodelet</build_depend>
-  <build_depend>tf</build_depend>
-  <build_depend>tf2</build_depend>
+
+  <depend>roscpp</depend>
+  <depend>nodelet</depend>
+  <depend>tf</depend>
+  <depend>tf2</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>kdtree</depend>
+  <depend>pigain</depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>mrs_msgs</depend>
   <build_depend>message_generation</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>visualization_msgs</build_depend>
-  <build_depend>kdtree</build_depend>
-  <build_depend>pigain</build_depend>
-  <build_depend>dynamic_reconfigure</build_depend>
-  
-  <run_depend>roscpp</run_depend>
-  <run_depend>nodelet</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>tf2</run_depend>
-  <run_depend>message_runtime</run_depend>
-  <run_depend>geometry_msgs</run_depend>
-  <run_depend>visualization_msgs</run_depend>
-  <run_depend>kdtree</run_depend>
-  <run_depend>pigain</run_depend>
-  <run_depend>dynamic_reconfigure</run_depend>
+  <exec_depend>message_runtime</exec_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />

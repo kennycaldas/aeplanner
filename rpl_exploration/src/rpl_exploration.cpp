@@ -38,7 +38,7 @@ int main(int argc, char** argv)
   // wait for fly_to server to start
   // ROS_INFO("Waiting for fly_to action server");
   actionlib::SimpleActionClient<rpl_exploration::FlyToAction> ac("fly_to", true);
-  // ac.waitForServer(); //will wait for infinite time
+  // ac.waitForServer();  // will wait for infinite time
   // ROS_INFO("Fly to ction server started!");
 
   // wait for aep server to start
@@ -60,10 +60,9 @@ int main(int argc, char** argv)
   double init_yaw = tf::getYaw(init_pose->pose.pose.orientation);
   // Up 2 meters and then forward one meter
   double initial_positions[8][4] = {
-    { init_pose->pose.pose.position.x, init_pose->pose.pose.position.y, init_pose->pose.pose.position.z + 2.0,
-      init_yaw },
+    { init_pose->pose.pose.position.x, init_pose->pose.pose.position.y, init_pose->pose.pose.position.z, init_yaw },
     { init_pose->pose.pose.position.x + 1.0 * std::cos(init_yaw),
-      init_pose->pose.pose.position.y + 1.0 * std::sin(init_yaw), init_pose->pose.pose.position.z + 2.0, init_yaw },
+      init_pose->pose.pose.position.y + 1.0 * std::sin(init_yaw), init_pose->pose.pose.position.z, init_yaw },
   };
 
   // This is the initialization motion, necessary that the known free space
@@ -102,7 +101,7 @@ int main(int argc, char** argv)
     aeplanner::aeplannerGoal aep_goal;
     aep_goal.header.stamp = ros::Time::now();
     aep_goal.header.seq = iteration;
-    aep_goal.header.frame_id = "map";
+    aep_goal.header.frame_id = "/uav1/world_origin";
     aep_goal.actions_taken = actions_taken;
     aep_ac.sendGoal(aep_goal);
 
@@ -138,7 +137,7 @@ int main(int argc, char** argv)
     {
       rrtplanner::rrtGoal rrt_goal;
       rrt_goal.start.header.stamp = ros::Time::now();
-      rrt_goal.start.header.frame_id = "map";
+      rrt_goal.start.header.frame_id = "/uav1/world_origin";
       rrt_goal.start.pose.position = last_pose.reference.position;
       rrt_goal.start.pose.orientation = tf::createQuaternionMsgFromYaw(last_pose.reference.heading);
       if (!aep_ac.getResult()->frontiers.poses.size())
