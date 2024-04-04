@@ -25,7 +25,7 @@ windows:
   - spawn:
       layout: tiled
       panes:
-        - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 $UAV_TYPE --enable-rangefinder --enable-rplidar --use-gpu-ray --enable-realsense-front --pos -3 -1 1.0 1.57"
+        - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 $UAV_TYPE --enable-rangefinder --enable-realsense-front --pos 0 0 1.0 0"
   - hw_api:
       layout: tiled
       panes:
@@ -50,10 +50,6 @@ windows:
       panes:
         - waitForHw; roslaunch mrs_uav_autostart automatic_start.launch
         - "waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard"
-  - bumper:
-      layout: tiled
-      panes:
-        - waitForControl; roslaunch octomap_exploration bumper.launch
   - aeplanner:
       layout: tiled
       panes:
