@@ -10,5 +10,6 @@ std_msgs/Duration sampling_time
 std_msgs/Duration planning_time
 std_msgs/Duration collision_check_time
 int32 tree_size
+bool service_failed
 -------
 # Define a feedback message

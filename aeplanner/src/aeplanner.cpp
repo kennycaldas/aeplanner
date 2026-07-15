@@ -68,7 +68,9 @@ void AEPlanner::execute(const aeplanner::aeplannerGoalConstPtr& goal)
     result.is_clear = true;
   else
   {
-    result.frontiers = getFrontiers();
+    bool service_failed = false;
+    result.frontiers = getFrontiers(service_failed);
+    result.service_failed = service_failed;  // [baseline-repair] propagate
     result.is_clear = false;
     delete best_branch_root_;
     best_branch_root_ = NULL;
@@ -430,25 +432,40 @@ std::pair<double, double> AEPlanner::gainCubature(Eigen::Vector4d state)
   return std::make_pair(gain, yaw);
 }
 
-geometry_msgs::PoseArray AEPlanner::getFrontiers()
+geometry_msgs::PoseArray AEPlanner::getFrontiers(bool& service_failed)
 {
   geometry_msgs::PoseArray frontiers;
+  service_failed = false;
 
   pigain::BestNode srv;
   srv.request.threshold = 16;  // FIXME parameterize
-  if (best_node_client_.call(srv))
+
+  // [baseline-repair] A failed service call is NOT an empty frontier set. Retry
+  // up to 3x (0.5 s apart). The SUCCESS path below is unchanged and is the ONLY
+  // origin of a completion (a successful call returning zero poses). If every
+  // retry fails we set service_failed so the caller skips this cycle instead of
+  // declaring "Exploration complete!".
+  for (int attempt = 1; attempt <= 3; ++attempt)
   {
-    for (int i = 0; i < srv.response.best_node.size(); ++i)
+    if (best_node_client_.call(srv))
     {
-      geometry_msgs::Pose frontier;
-      frontier.position = srv.response.best_node[i];
-      frontiers.poses.push_back(frontier);
+      for (int i = 0; i < srv.response.best_node.size(); ++i)
+      {
+        geometry_msgs::Pose frontier;
+        frontier.position = srv.response.best_node[i];
+        frontiers.poses.push_back(frontier);
+      }
+      return frontiers;
     }
-  }
-  else
-  {
+    ROS_ERROR("[baseline-repair] best_node service call FAILED (attempt %d/3) "
+              "- retrying; a failure is NOT an empty frontier set",
+              attempt);
+    ros::Duration(0.5).sleep();
   }
 
+  service_failed = true;
+  ROS_ERROR("[baseline-repair] best_node service call FAILED after 3 attempts "
+            "- skipping frontier decision this cycle (NOT completing)");
   return frontiers;
 }
 

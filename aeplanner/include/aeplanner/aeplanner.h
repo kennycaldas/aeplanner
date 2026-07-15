@@ -102,7 +102,9 @@ private:
                           const octomap::point3d& pt);
 
   // ---------------- Frontier ----------------
-  geometry_msgs::PoseArray getFrontiers();
+  // [baseline-repair] service_failed out-param is set true when the best_node
+  // service call fails on all retries, so the caller skips (never completes).
+  geometry_msgs::PoseArray getFrontiers(bool& service_failed);
 
 public:
   AEPlanner(const ros::NodeHandle& nh);

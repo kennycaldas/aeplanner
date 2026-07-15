@@ -26,6 +26,7 @@ namespace
 {
 double g_uav_x = 0.0, g_uav_y = 0.0, g_uav_z = 0.0;
 bool g_uav_pose_valid = false;
+int g_diag_srv_failures = 0;  // [baseline-repair] best_node failures skipped (never completed)
 }  // namespace
 
 void diagOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -179,6 +180,26 @@ int main(int argc, char** argv)
     }
     else
     {
+      // [baseline-repair] A best_node service failure is NOT a completion. Skip
+      // this cycle's frontier decision and continue the loop (last_pose kept
+      // being published by the busy-wait above); a fresh make_plan runs next
+      // cycle. Completion may fire ONLY on a genuine empty (service_failed=false).
+      if (aep_ac.getResult()->service_failed)
+      {
+        ++g_diag_srv_failures;
+        diag_verdict = "SRV_FAILED_SKIP";
+        diagfile << iteration << ", " << (ros::Time::now() - start).toSec() << ", "
+                 << diag_is_clear << ", " << diag_frontier_count << ", "
+                 << diag_rrt_path_len << ", " << g_uav_x << ", " << g_uav_y << ", "
+                 << g_uav_z << ", " << diag_verdict << std::endl;
+        diagfile.flush();
+        ROS_ERROR("[baseline-repair] best_node service failed "
+                  "(diag_srv_failures=%d) - skipping frontier decision, NOT "
+                  "completing", g_diag_srv_failures);
+        iteration++;
+        continue;
+      }
+
       rrtplanner::rrtGoal rrt_goal;
       rrt_goal.start.header.stamp = ros::Time::now();
       rrt_goal.start.header.frame_id = "/uav1/world_origin";
