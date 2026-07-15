@@ -13,6 +13,7 @@ from aeplanner.srv import Reevaluate
 
 import numpy as np
 from rtree import index
+import threading
 
 import os
 import rospkg
@@ -70,6 +71,10 @@ class PIGain:
         p.dimension = 3
         self.idx = index.Index(properties = p)
         self.id = 0
+        # [baseline-repair] libspatialindex/rtree is NOT thread-safe; rospy runs
+        # each service callback on its own thread while the reevaluate timer and
+        # gain_callback insert concurrently. Serialize every self.idx.* access.
+        self._idx_lock = threading.Lock()
 
         rospy.Timer(rospy.Duration(5), self.reevaluate_timer_callback)
 
@@ -108,7 +113,8 @@ class PIGain:
         bbx = (self.x-self.range, self.y-self.range, self.z-self.range, 
                self.x+self.range, self.y+self.range, self.z+self.range)
 
-        hits = self.idx.intersection(bbx, objects=True)
+        with self._idx_lock:
+            hits = list(self.idx.intersection(bbx, objects=True))
 
         reevaluate_list = []
         reevaluate_position_list = []
@@ -126,12 +132,14 @@ class PIGain:
             item.object.gain = res.gain[i]
             item.object.yaw = res.yaw[i]
 
-            self.idx.delete(item.id, (item.object.position.x, item.object.position.y, item.object.position.z))
-            self.idx.insert(item.id, (item.object.position.x, item.object.position.y, item.object.position.z), obj=item.object)
+            with self._idx_lock:
+                self.idx.delete(item.id, (item.object.position.x, item.object.position.y, item.object.position.z))
+                self.idx.insert(item.id, (item.object.position.x, item.object.position.y, item.object.position.z), obj=item.object)
 
         # --- DIAGNOSTIC (logging only): global best gain across full cache ---
         try:
-            _all = self.idx.intersection(self.bbx, objects=True)
+            with self._idx_lock:
+                _all = list(self.idx.intersection(self.bbx, objects=True))
             _n_cached = 0
             _n_above = 0
             _best = -1.0
@@ -151,7 +159,8 @@ class PIGain:
 
     """ Insert node with estimated gain in rtree """
     def gain_callback(self, msg):
-        self.idx.insert(self.id, (msg.position.x, msg.position.y, msg.position.z), obj=msg)
+        with self._idx_lock:
+            self.idx.insert(self.id, (msg.position.x, msg.position.y, msg.position.z), obj=msg)
         self.id += 1
 
     """ Handle query to Gaussian Process """
@@ -160,8 +169,9 @@ class PIGain:
                req.point.x+2, req.point.y+2, req.point.z+2)
         y = np.empty((0))
         x = np.empty((0,3))
-        hits = self.idx.intersection(bbx, objects=True)
-        nearest = self.idx.nearest(bbx, 1, objects=True)
+        with self._idx_lock:
+            hits = list(self.idx.intersection(bbx, objects=True))
+            nearest = list(self.idx.nearest(bbx, 1, objects=True))
 
         for item in hits:
             y = np.append(y, [item.object.gain], axis=0)
@@ -202,7 +212,8 @@ class PIGain:
 
     """ Return all nodes with gain higher than req.threshold """
     def best_node_srv_callback(self, req):
-        hits = self.idx.intersection(self.bbx, objects=True)
+        with self._idx_lock:
+            hits = list(self.idx.intersection(self.bbx, objects=True))
 
         best_gain = -1
         n_cached = 0
@@ -230,7 +241,8 @@ class PIGain:
         y = np.empty((0))
         x = np.empty((0,3))
         xstar = np.empty((0,3))
-        hits = self.idx.intersection(self.bbx, objects=True)
+        with self._idx_lock:
+            hits = list(self.idx.intersection(self.bbx, objects=True))
         for item in hits:
             y = np.append(y, [item.object.gain], axis=0)
             x = np.append(x, [[item.object.position.x, item.object.position.y, item.object.position.z]], axis = 0)
@@ -257,7 +269,8 @@ class PIGain:
     """ Publish all cached nodes in rviz """
     def rviz_callback(self, event):
         markers = MarkerArray()
-        hits = self.idx.intersection(self.bbx, objects=True)
+        with self._idx_lock:
+            hits = list(self.idx.intersection(self.bbx, objects=True))
         for item in hits:
             markers.markers.append(self.node_to_marker(item.id, item.object))
         
