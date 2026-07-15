@@ -65,7 +65,7 @@ target_link_libraries(aeplanner
 add_dependencies(aeplanner
   ${catkin_EXPORTED_TARGETS} 
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
-  aeplanner_ref_generate_messages_cpp
+  aeplanner_generate_messages_cpp
   ${PROJECT_NAME}_gencfg
 )
 
@@ -77,6 +77,6 @@ target_link_libraries(aeplanner_node
 add_dependencies(aeplanner_node
   ${catkin_EXPORTED_TARGETS} 
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
-  aeplanner_ref_generate_messages_cpp
+  aeplanner_generate_messages_cpp
   ${PROJECT_NAME}_gencfg
 )

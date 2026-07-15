@@ -14,6 +14,9 @@ from aeplanner.srv import Reevaluate
 import numpy as np
 from rtree import index
 
+import os
+import rospkg
+
 import gp
 
 class PIGain:
@@ -70,6 +73,24 @@ class PIGain:
 
         rospy.Timer(rospy.Duration(5), self.reevaluate_timer_callback)
 
+        # --- DIAGNOSTIC (logging only): global-best-gain CSV ---
+        # Mirrors the hardcoded frontier threshold used in
+        # aeplanner.cpp::getFrontiers() (currently 16). Do not change behaviour.
+        self._frontier_threshold_mirror = 16.0
+        self._gain_log_path = None
+        try:
+            _rp = rospkg.RosPack()
+            _diag_dir = os.path.join(_rp.get_path('rpl_exploration'), 'data')
+            if not os.path.isdir(_diag_dir):
+                os.makedirs(_diag_dir)
+            self._gain_log_path = os.path.join(_diag_dir, 'pig_gain.csv')
+            with open(self._gain_log_path, 'w') as f:
+                f.write("stamp_s,event,threshold,n_cached,n_above,best_gain\n")
+            rospy.loginfo("[pig][DIAG] gain log: %s", self._gain_log_path)
+        except Exception as e:
+            rospy.logwarn("[pig][DIAG] could not init gain log: %s", str(e))
+            self._gain_log_path = None
+
     """ Save current pose of agent """
     def pose_callback(self, msg):
         self.x = msg.pose.pose.position.x
@@ -107,6 +128,24 @@ class PIGain:
 
             self.idx.delete(item.id, (item.object.position.x, item.object.position.y, item.object.position.z))
             self.idx.insert(item.id, (item.object.position.x, item.object.position.y, item.object.position.z), obj=item.object)
+
+        # --- DIAGNOSTIC (logging only): global best gain across full cache ---
+        try:
+            _all = self.idx.intersection(self.bbx, objects=True)
+            _n_cached = 0
+            _n_above = 0
+            _best = -1.0
+            _thr = self._frontier_threshold_mirror
+            for _it in _all:
+                _n_cached += 1
+                _g = _it.object.gain
+                if _g > _thr:
+                    _n_above += 1
+                if _g > _best:
+                    _best = _g
+            self._log_gain("reevaluate", _thr, _n_cached, _n_above, _best)
+        except Exception as e:
+            rospy.logwarn("[pig][DIAG] reevaluate snapshot failed: %s", str(e))
 
         rospy.loginfo("reevaluate done")
 
@@ -149,18 +188,39 @@ class PIGain:
 
         return response
 
+    def _log_gain(self, event, threshold, n_cached, n_above, best_gain):
+        """DIAGNOSTIC: append one row to pig_gain.csv. Logging only."""
+        if self._gain_log_path is None:
+            return
+        try:
+            with open(self._gain_log_path, 'a') as f:
+                f.write("%.3f,%s,%.3f,%d,%d,%.4f\n" % (
+                    rospy.get_time(), event, threshold,
+                    n_cached, n_above, best_gain))
+        except Exception as e:
+            rospy.logwarn("[pig][DIAG] gain log write failed: %s", str(e))
+
     """ Return all nodes with gain higher than req.threshold """
     def best_node_srv_callback(self, req):
         hits = self.idx.intersection(self.bbx, objects=True)
 
         best_gain = -1
-        best_pose = None
+        n_cached = 0
+        n_above = 0
         response = BestNodeResponse()
         for item in hits:
+            n_cached += 1
             if item.object.gain > req.threshold:
+                n_above += 1
                 response.best_node.append(item.object.position)
             if item.object.gain > best_gain:
                 best_gain = item.object.gain
+
+        # DIAGNOSTIC: this callback is invoked exactly when AEP is deciding
+        # whether any frontier remains. best_gain < req.threshold here is the
+        # signature of Mode A (threshold-driven false completion).
+        self._log_gain("best_node_query", float(req.threshold),
+                       n_cached, n_above, float(best_gain))
 
         response.gain = best_gain
         return response

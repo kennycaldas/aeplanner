@@ -19,6 +19,23 @@
 #include <nav_msgs/Path.h>
 #include <tf2/utils.h>
 
+// --- DIAGNOSTIC (logging only): cache latest UAV position to detect
+//     freeze (Mode B) vs motion. Serviced by an AsyncSpinner on the default
+//     callback queue; the action clients use their own spin threads. ---
+namespace
+{
+double g_uav_x = 0.0, g_uav_y = 0.0, g_uav_z = 0.0;
+bool g_uav_pose_valid = false;
+}  // namespace
+
+void diagOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  g_uav_x = msg->pose.pose.position.x;
+  g_uav_y = msg->pose.pose.position.y;
+  g_uav_z = msg->pose.pose.position.z;
+  g_uav_pose_valid = true;
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "exploration");
@@ -31,14 +48,31 @@ int main(int argc, char** argv)
   logfile.open(path + "/data/logfile.csv");
   pathfile.open(path + "/data/path.csv");
 
+  // --- DIAGNOSTIC (logging only) ---
+  std::ofstream diagfile;
+  diagfile.open(path + "/data/diag.csv");
+  diagfile << "iteration,elapsed_s,is_clear,frontier_count,rrt_path_len,"
+           << "uav_x,uav_y,uav_z,verdict" << std::endl;
+
   ros::Publisher pub(nh.advertise<mrs_msgs::ReferenceStamped>("/uav1/control_manager/reference", 1000));
 
   ros::ServiceClient coverage_srv = nh.serviceClient<aeplanner_evaluation::Coverage>("/get_coverage");
+
+  // --- DIAGNOSTIC (logging only) ---
+  ros::AsyncSpinner diag_spinner(1);
+  diag_spinner.start();
+  ros::Subscriber diag_odom_sub =
+      nh.subscribe("/uav1/control_manager/control_reference", 1, diagOdomCallback);
 
   // wait for fly_to server to start
   // ROS_INFO("Waiting for fly_to action server");
   actionlib::SimpleActionClient<rpl_exploration::FlyToAction> ac("fly_to", true);
   // ac.waitForServer();  // will wait for infinite time
+  // BRINGUP FIX (Session 2 §F2): do not send goals into a not-yet-advertised
+  // action server — the init-motion fly_to goal was dropped and waitForResult
+  // blocked forever. Readiness wait only; init-motion content unchanged.
+  while (ros::ok() && !ac.waitForServer(ros::Duration(5.0)))
+    ROS_WARN("[bringup] waiting for fly_to action server...");
   // ROS_INFO("Fly to ction server started!");
 
   // wait for aep server to start
@@ -51,6 +85,9 @@ int main(int argc, char** argv)
   ROS_INFO("Waiting for rrt action server");
   actionlib::SimpleActionClient<rrtplanner::rrtAction> rrt_ac("rrt", true);
   // rrt_ac.waitForServer(); //will wait for infinite time
+  // BRINGUP FIX (Session 2 §F2): wait for the rrt action server before first use.
+  while (ros::ok() && !rrt_ac.waitForServer(ros::Duration(5.0)))
+    ROS_WARN("[bringup] waiting for rrt action server...");
   ROS_INFO("rrt Action server started!");
 
   // Get current pose
@@ -110,6 +147,13 @@ int main(int argc, char** argv)
       pub.publish(last_pose);
     }
 
+    // --- DIAGNOSTIC snapshot for this iteration (logging only) ---
+    const bool diag_is_clear = aep_ac.getResult()->is_clear;
+    const int diag_frontier_count =
+        static_cast<int>(aep_ac.getResult()->frontiers.poses.size());
+    int diag_rrt_path_len = -1;  // -1 => RRT not invoked this iteration
+    std::string diag_verdict = "NORMAL_NBV";
+
     ros::Duration fly_time;
     if (aep_ac.getResult()->is_clear)
     {
@@ -142,7 +186,18 @@ int main(int argc, char** argv)
       rrt_goal.start.pose.orientation = tf::createQuaternionMsgFromYaw(last_pose.reference.heading);
       if (!aep_ac.getResult()->frontiers.poses.size())
       {
+        // --- DIAGNOSTIC: Mode A — false-positive completion ---
+        diag_verdict = "MODE_A_COMPLETE_NO_FRONTIERS";
+        diagfile << iteration << ", " << (ros::Time::now() - start).toSec() << ", "
+                 << diag_is_clear << ", " << diag_frontier_count << ", "
+                 << diag_rrt_path_len << ", " << g_uav_x << ", " << g_uav_y << ", "
+                 << g_uav_z << ", " << diag_verdict << std::endl;
+        diagfile.flush();
         ROS_WARN("Exploration complete!");
+        ROS_WARN("[DIAG] MODE A: is_clear=false and frontier set EMPTY. "
+                 "Inspect pig_gain.csv: if global best gain fell below the "
+                 "threshold (16) while volume remained, this is threshold-driven "
+                 "false completion, not a true local minimum.");
         break;
       }
       for (auto it = aep_ac.getResult()->frontiers.poses.begin(); it != aep_ac.getResult()->frontiers.poses.end(); ++it)
@@ -156,6 +211,17 @@ int main(int argc, char** argv)
         pub.publish(last_pose);
       }
       nav_msgs::Path path = rrt_ac.getResult()->path;
+
+      // --- DIAGNOSTIC: capture RRT path length; flag Mode B ---
+      diag_rrt_path_len = static_cast<int>(path.poses.size());
+      if (diag_rrt_path_len == 0)
+      {
+        diag_verdict = "MODE_B_FRONTIERS_BUT_NO_RRT_PATH";
+        ROS_WARN("[DIAG] MODE B: %d frontier(s) reported but RRT returned an "
+                 "EMPTY path. UAV will not move this iteration. Likely "
+                 "unknown-space blocking the route or min_nodes too low.",
+                 diag_frontier_count);
+      }
 
       ros::Time s = ros::Time::now();
       for (int i = path.poses.size() - 1; i >= 0; --i)
@@ -184,6 +250,13 @@ int main(int argc, char** argv)
 
     ros::Duration elapsed = ros::Time::now() - start;
 
+    // --- DIAGNOSTIC row (every completed iteration) ---
+    diagfile << iteration << ", " << elapsed.toSec() << ", " << diag_is_clear
+             << ", " << diag_frontier_count << ", " << diag_rrt_path_len << ", "
+             << g_uav_x << ", " << g_uav_y << ", " << g_uav_z << ", "
+             << diag_verdict << std::endl;
+    diagfile.flush();
+
     ROS_INFO_STREAM("Iteration: " << iteration << "  "
                                   << "Time: " << elapsed << "  "
                                   << "Sampling: " << aep_ac.getResult()->sampling_time.data << "  "
@@ -201,4 +274,5 @@ int main(int argc, char** argv)
 
   pathfile.close();
   logfile.close();
+  diagfile.close();
 }
