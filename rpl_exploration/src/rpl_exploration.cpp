@@ -143,9 +143,20 @@ int main(int argc, char** argv)
     aep_goal.actions_taken = actions_taken;
     aep_ac.sendGoal(aep_goal);
 
+    // [hb] §Y1 rpl-side watchdog (log-only): if make_plan takes > 30 s, the
+    // planner is stuck INSIDE aeplanner::execute() (its [hb] lines localize it).
+    ros::WallTime aep_wait_start = ros::WallTime::now();
+    int aep_wait_warns = 0;
     while (!aep_ac.waitForResult(ros::Duration(0.05)))
     {
       pub.publish(last_pose);
+      const double waited = (ros::WallTime::now() - aep_wait_start).toSec();
+      if (waited > 30.0 * (aep_wait_warns + 1))
+      {
+        ++aep_wait_warns;
+        ROS_WARN("[hb] WAITING >%ds for aeplanner result (iter %d)",
+                 30 * aep_wait_warns, iteration);
+      }
     }
 
     // --- DIAGNOSTIC snapshot for this iteration (logging only) ---
@@ -174,7 +185,9 @@ int main(int argc, char** argv)
       goal.pose = goal_pose;
       ac.sendGoal(goal);
 
-      ac.waitForResult(ros::Duration(0));
+      ROS_INFO("[hb] pre flyto_nbv.waitForResult");             // [hb] §Y2
+      ac.waitForResult(ros::Duration(0));                       // INFINITE wait
+      ROS_INFO("[hb] post flyto_nbv.waitForResult");
 
       fly_time = ros::Time::now() - s;
     }
@@ -227,10 +240,12 @@ int main(int argc, char** argv)
       }
 
       rrt_ac.sendGoal(rrt_goal);
+      ROS_INFO("[hb] pre rrt_ac.waitForResult");                // [hb] §Y2
       while (!rrt_ac.waitForResult(ros::Duration(0.05)))
       {
         pub.publish(last_pose);
       }
+      ROS_INFO("[hb] post rrt_ac.waitForResult");
       nav_msgs::Path path = rrt_ac.getResult()->path;
 
       // --- DIAGNOSTIC: capture RRT path length; flag Mode B ---
@@ -263,7 +278,11 @@ int main(int argc, char** argv)
         goal.pose = goal_pose;
         ac.sendGoal(goal);
 
-        ac.waitForResult(ros::Duration(0));
+        ROS_INFO("[hb] pre flypath_leg %zu/%zu.waitForResult",  // [hb] §Y2
+                 path.poses.size() - i, path.poses.size());
+        ac.waitForResult(ros::Duration(0));                    // INFINITE wait
+        ROS_INFO("[hb] post flypath_leg %zu/%zu.waitForResult",
+                 path.poses.size() - i, path.poses.size());
       }
       actions_taken = -1;
       fly_time = ros::Time::now() - s;

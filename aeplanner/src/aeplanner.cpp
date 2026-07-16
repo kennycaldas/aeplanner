@@ -27,6 +27,10 @@ AEPlanner::AEPlanner(const ros::NodeHandle& nh)
 
 void AEPlanner::execute(const aeplanner::aeplannerGoalConstPtr& goal)
 {
+  // [hb] §Y1 diagnostic heartbeats (additive logging only). If execute() hangs,
+  // the last "[hb] pre <name>" with no matching "post" localizes the block. An
+  // enter marker with no following "Best node score" => hang is pre-scoring.
+  ROS_INFO("[hb] execute enter");
   aeplanner::aeplannerResult result;
 
   // Check if aeplanner has recieved agent's pose yet
@@ -69,13 +73,18 @@ void AEPlanner::execute(const aeplanner::aeplannerGoalConstPtr& goal)
   else
   {
     bool service_failed = false;
+    ROS_INFO("[hb] pre getFrontiers");                         // [hb] §Y1
     result.frontiers = getFrontiers(service_failed);
+    ROS_INFO("[hb] post getFrontiers (service_failed=%d, n=%zu)",
+             static_cast<int>(service_failed), result.frontiers.poses.size());
     result.service_failed = service_failed;  // [baseline-repair] propagate
     result.is_clear = false;
     delete best_branch_root_;
     best_branch_root_ = NULL;
   }
+  ROS_INFO("[hb] pre setSucceeded");                           // [hb] §Y1
   as_.setSucceeded(result);
+  ROS_INFO("[hb] post setSucceeded");
 
   ROS_DEBUG("Deleting/Freeing!");
   delete root;
@@ -447,7 +456,15 @@ geometry_msgs::PoseArray AEPlanner::getFrontiers(bool& service_failed)
   // declaring "Exploration complete!".
   for (int attempt = 1; attempt <= 3; ++attempt)
   {
-    if (best_node_client_.call(srv))
+    // [hb] §Y1: best_node is a SYNCHRONOUS call — it blocks until the pigain
+    // server replies. A "pre" with no matching "post" localizes the hang HERE
+    // (server accepted but never responded; the §A1 retry only fires on a
+    // connection-level failure where call() returns false, not on a hung reply).
+    ROS_INFO("[hb] pre best_node_call attempt %d/3", attempt);
+    const bool call_ok = best_node_client_.call(srv);
+    ROS_INFO("[hb] post best_node_call attempt %d/3 (ok=%d)", attempt,
+             static_cast<int>(call_ok));
+    if (call_ok)
     {
       for (int i = 0; i < srv.response.best_node.size(); ++i)
       {
