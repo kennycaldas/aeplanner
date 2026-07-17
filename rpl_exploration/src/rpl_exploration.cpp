@@ -186,7 +186,15 @@ int main(int argc, char** argv)
       ac.sendGoal(goal);
 
       ROS_INFO("[hb] pre flyto_nbv.waitForResult");             // [hb] §Y2
-      ac.waitForResult(ros::Duration(0));                       // INFINITE wait
+      // [baseline-repair §V6] bound the fly wait: a waypoint the tracker cannot
+      // reach must not freeze the planner (Session-4 fly-hang). Cancel + continue
+      // — AEP's own leg-skip, mirroring §X2. Planning logic untouched.
+      if (!ac.waitForResult(ros::Duration(20.0)))
+      {
+        ROS_WARN("[baseline-repair] fly waypoint not reached in 20s — cancel + "
+                 "continue");
+        ac.cancelGoal();
+      }
       ROS_INFO("[hb] post flyto_nbv.waitForResult");
 
       fly_time = ros::Time::now() - s;
@@ -280,7 +288,13 @@ int main(int argc, char** argv)
 
         ROS_INFO("[hb] pre flypath_leg %zu/%zu.waitForResult",  // [hb] §Y2
                  path.poses.size() - i, path.poses.size());
-        ac.waitForResult(ros::Duration(0));                    // INFINITE wait
+        // [baseline-repair §V6] bound the fly wait (see the flyto_nbv site).
+        if (!ac.waitForResult(ros::Duration(20.0)))
+        {
+          ROS_WARN("[baseline-repair] fly waypoint not reached in 20s — cancel + "
+                   "continue");
+          ac.cancelGoal();
+        }
         ROS_INFO("[hb] post flypath_leg %zu/%zu.waitForResult",
                  path.poses.size() - i, path.poses.size());
       }
