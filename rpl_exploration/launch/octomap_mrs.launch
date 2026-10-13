@@ -18,7 +18,7 @@
 
   <!-- NodeletManager //{ -->
 
-  <include file="$(find octomap_exploration)/launch/nodelet_manager.launch">
+  <include file="$(find simulation_bringup)/launch/nodelet_manager.launch">
 
     <arg name="standalone" value="$(arg standalone)" />
     <arg name="debug" value="$(arg debug)" />
@@ -28,7 +28,7 @@
 
   <!-- Realsense FRONT to PC //{ -->
 
-  <include file="$(find octomap_exploration)/launch/depth_to_pc.launch">
+  <include file="$(find simulation_bringup)/launch/depth_to_pc.launch">
 
     <!-- <arg name="standalone" value="true" /> -->
     <arg name="standalone" value="$(arg standalone)" />
