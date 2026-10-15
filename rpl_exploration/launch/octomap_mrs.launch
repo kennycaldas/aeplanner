@@ -71,7 +71,6 @@
     <arg name="depth_camera_topic_0_over_max_range_in"
       default="pcl_filter_rs_front/points_over_max_range" />
     <arg name="camera_info_topic_0_in" default="rgbd/aligned_depth_to_color/camera_info" />
-    <arg name="lidar_2d_topic_0_in" value="rplidar/scan" />
     <arg name="world_frame_id" value="$(arg world_frame_id)" />
 
   </include>
